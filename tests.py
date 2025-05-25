@@ -1,7 +1,10 @@
 from COFFEESHOP import *
+from db import DataBase
+
 
 
 coffeeshop = CoffeeShop('Starbucks Coffee Company')
+database = DataBase()
 
 # print("изначально:")
 # print(coffeeshop.balance_in_stock)
@@ -17,3 +20,4 @@ coffeeshop.replenish_warehouse(Cappuccino=10, Latte=22, Americano=4)
 # print("после пополнения склада cappuccino: 10, latte: 22, americano: 4:")
 # print(coffeeshop.balance_in_stock)
 # print()
+

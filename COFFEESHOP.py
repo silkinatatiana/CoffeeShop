@@ -15,28 +15,32 @@ class CoffeeShop:
         self.name = name
         self.cash_register = 0
         self.check_number = 0
+        self.invoice = 0
         self.balance_in_stock = balance_in_stock
         self.coffee = {'Cappuccino': Coffee('Cappuccino', 350), 
                        'Latte': Coffee('Latte', 380), 
                        'Americano': Coffee('Americano', 250)}
 
     def order_coffee(self, **kwargs):
-        total_price = 0
+        total_sum = 0
+        count_cups = 0
         drinks = []
-        for drink, count in kwargs.items():
+
+        for drink, amount in kwargs.items():
             self.verification(drink)
 
-            if count > self.balance_in_stock[drink]:
-                raise Exception(f"К заказу доступно {self.balance_in_stock[drink]} чашек {count}")
+            if amount > self.balance_in_stock[drink]:
+                raise Exception(f"К заказу доступно {self.balance_in_stock[drink]} чашек {amount}")
 
-            total_price += self.coffee[drink].price * count
-            self.balance_in_stock[drink] -= count
-            drinks.append(f"{drink}: {str(count)} шт., {self.coffee[drink].price} руб/шт")
+            total_price += self.coffee[drink].price * amount
+            count_cups += amount
+            self.balance_in_stock[drink] -= amount
+            drinks.append(f"{drink}: {str(count_cups)} шт., {self.coffee[drink].price} руб/шт")
+            db_instance.add_entry_coffee(drink, self.coffee[drink].price, check_number=self.check_number + 1)
 
         self.cash_register += total_price
+        db_instance.add_entry_sales(self.check_number, count_cups, total_sum)
         self.print_a_check(coffee='\n'.join(drinks), total_price=total_price)
-        db_instance.add_entry(check_number=self.check_number, operation='заказ кофе', type_coffee=', '.join(drinks), 
-                              count_cups=count, total_sum=total_price)
 
     def verification(self, drink):
         if drink not in self.balance_in_stock:
@@ -53,12 +57,13 @@ class CoffeeShop:
     def replenish_warehouse(self, **kwargs): # пополнить склад
         drinks = []
         total_count = 0
+        self.invoice += 1
         for drink, count in kwargs.items():
             self.verification(drink)
             self.balance_in_stock[drink] += count
             drinks.append(f"{drink}: {str(count)} шт.")
             total_count += count
-        db_instance.add_entry(check_number=self.check_number, operation='пополнение склада',
+        db_instance.add_entry(invoice=self.invoice, operation='пополнение склада',
                               type_coffee=', '.join(drinks), count_cups=total_count)
         
     def show_table(self, *args, show_all=True):

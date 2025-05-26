@@ -6,14 +6,14 @@ coffeeshop = CoffeeShop('Starbucks Coffee Company')
 
 ##################### ДОБАВЛЕНИЕ ДАННЫХ: #####################
 
-# coffeeshop.order_coffee(Cappuccino=1, Latte=2, Americano=7)
-# coffeeshop.order_coffee(Cappuccino=4)
-# coffeeshop.order_coffee(Latte=1, Americano=1)
-# coffeeshop.order_coffee(Cappuccino=1)
-# coffeeshop.order_coffee(Latte=4)
-# coffeeshop.order_coffee(Americano=3, Latte=2)
+coffeeshop.order_coffee(Cappuccino=1, Latte=2, Americano=7)
+coffeeshop.order_coffee(Cappuccino=4)
+coffeeshop.order_coffee(Latte=1, Americano=1)
+coffeeshop.order_coffee(Cappuccino=1)
+coffeeshop.order_coffee(Latte=4)
+coffeeshop.order_coffee(Americano=3, Latte=2)
 
-# coffeeshop.replenish_warehouse(Cappuccino=10, Latte=22, Americano=4)
+coffeeshop.replenish_warehouse(Cappuccino=10, Latte=22, Americano=4)
 
 
 ##################### КОМАНДЫ ДЛЯ ПРОСМОТРА БД: #####################

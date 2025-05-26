@@ -12,10 +12,11 @@ class DataBase:
             conn.execute("""
                                  CREATE TABLE IF NOT EXISTS coffeeshop (
                                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                 check_number INTEGER NOT NULL,
                                  operation TEXT NOT NULL,
                                  type_coffee TEXT NOT NULL,
-                                 sum INTEGER,
-                                 count INTEGER NOT NULL,
+                                 total_sum INTEGER,
+                                 count_cups INTEGER NOT NULL,
                                  timestamp TEXT NOT NULL);
                         """)
             conn.commit()
@@ -23,17 +24,85 @@ class DataBase:
     def get_connection(self):
         return sqlite3.connect(self.db_name)
         
-    def add_entry(self, operation, type_coffee, count, timestamp, summa=None):
+    def add_entry(self, check_number, operation, type_coffee, count_cups, total_sum=None):
+        timestamp = datetime.now().replace(microsecond=0)
+
         with self.get_connection() as conn:       
             conn.execute(
                 """
-                INSERT INTO coffeeshop (operation, type_coffee, count, timestamp, sum)
-                VALUES (?, ?, ?, ?, ?)
-                """, (operation, type_coffee, count, timestamp, summa))
+                INSERT INTO coffeeshop (check_number, operation, type_coffee, total_sum, count_cups, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """, (check_number, operation, type_coffee, total_sum, count_cups, timestamp))
             conn.commit()
 
+    def show_table(self, *args):
+        if len(args) == 0:
+            sql = "SELECT * FROM coffeeshop;"
+        else:
+            sql = "SELECT * FROM coffeeshop WHERE operation = ?;"
+        with self.get_connection() as conn:
+            conn.execute(sql, (args[0]), )
+            cursor = conn.cursor()
+            return cursor.fetchall()
 
-    # Удаление записи из БД до указанного времени datetime
+
+    def select_by_cups(self, cups_from, cups_before):
+        with self.get_connection() as conn:
+            conn.execute(
+                """
+                SELECT * FROM coffeeshop WHERE count_cups BETWEEN ? AND ?;
+                """, (cups_from, cups_before)
+            )
+            cursor = conn.cursor()
+            return cursor.fetchall()
+
+    def select_by_datetime(self, dt_from, dt_before):
+        with self.get_connection() as conn:
+            conn.execute(
+                """
+                SELECT * FROM coffeeshop
+                WHERE timestamp BETWEEN ? AND ?;
+                """, (dt_from, dt_before)
+            )
+            cursor = conn.cursor()
+            return cursor.fetchall()
+        
+    # Сортировка по количеству, времени (одна сортировка)
+    def sort_by_count_time(self):
+        with self.get_connection() as conn:
+            conn.execute("""
+                         SELECT * FROM coffeeshop
+                         ORDER BY count_cups, timestamp;
+                        """)
+            
+            cursor = conn.cursor()
+            return cursor.fetchall()
+
+    # Сортировка по увеличению суммы
+    def sort_by_increasing_sum(self):
+        with self.get_connection() as conn:
+            conn.execute("""
+                         SELECT * FROM coffeeshop
+                         ORDER BY total_sum;
+                         """)
+
+            cursor = conn.cursor()
+            return cursor.fetchall()
+
+    # Посчитать сумму чеков и отдельно количество чашек, за определенный период
+    def sumchecks_and_countcups(self, dt_from, dt_before):
+        with self.get_connection() as conn:
+            conn.execute(
+                """
+                SELECT SUM(total_sum) as sum_of_checks, SUM(count_cups) as sum_of_cups
+                FROM coffeeshop
+                WHERE timestamp BETWEEN ? AND ?;
+                """, (dt_from, dt_before)
+                )
+            cursor = conn.cursor()
+            return cursor.fetchall()
+        
+        # Удаление записи из БД до указанного времени datetime
     def del_before_time(self, dt):
         with self.get_connection() as conn:
             conn.execute(
@@ -50,20 +119,21 @@ class DataBase:
             raise ValueError("Необходимо указать хотя бы один тип кофе")
         
         with self.get_connection() as conn:
-            placeholders = ', '.join(['?'] * len(args))
-
+            conditions = " OR ".join(["type_coffee LIKE ?" for _ in args])
+            params = [f"%{coffee_type}%" for coffee_type in args]
+            
             conn.execute(
                 f"""
-                DELETE FROM coffeeshop WHERE LOWER(type_coffee)
-                IN ({placeholders});
+                DELETE FROM coffeeshop 
+                WHERE {conditions};
                 """, 
-                (args[0],)
+                params
             )
             conn.commit()
 
     # Удалить по типу операций
     def del_by_operation_type(self, operation_type):
-        if operation_type not in ('order_coffee', 'replenish_warehouse'):
+        if operation_type not in ('заказ кофе', 'пополнение склада'):
             raise ValueError("Неизвестная операция")
         
         with self.get_connection() as conn:
@@ -73,56 +143,3 @@ class DataBase:
                 """, (operation_type,)
             )
             conn.commit()
-
-    # Сортировка по количеству, времени (одна сортировка)
-    def sort_by_count_time(self):
-        with self.get_connection() as conn:
-            conn.execute("""
-                         SELECT * FROM coffeeshop
-                         ORDER BY count, timestamp;
-                        """)
-            conn.commit()
-
-    # Сортировка по увеличению суммы
-    def sort_by_increasing_sum(self):
-        with self.get_connection() as conn:
-            conn.execute("""
-                         SELECT * FROM coffeeshop
-                         ORDER BY sum;
-                         """)
-
-            conn.commit()
-
-    # Посчитать сумму чеков и отдельно количество чашек, за определенный период
-    def sumchecks_and_countcups(self, dt_from, dt_before):
-        with self.get_connection() as conn:
-            conn.execute(
-                """
-                SELECT SUM(sum) as sum_of_checks, SUM(count) as count_of_cups
-                FROM coffeeshop
-                WHERE timestamp BETWEEN ? AND ?;
-                """, (dt_from, dt_before)
-
-            )
-            conn.commit()
-
-    def select_by_cups(self, cups_from, cups_before):
-        with self.get_connection() as conn:
-            conn.execute(
-                """
-                SELECT * FROM coffeeshop WHERE count BETWEEN ? AND ?;
-                """, (cups_from, cups_before)
-            )
-            conn.commit()
-
-    def select_by_datetime(self, dt_from, dt_before):
-        with self.get_connection() as conn:
-            conn.execute(
-                """
-                SELECT * FROM coffeeshop
-                WHERE timestamp BETWEEN ? AND ?;
-                """, (dt_from, dt_before)
-
-            )
-            conn.commit()
-    

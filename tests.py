@@ -18,8 +18,8 @@ coffeeshop = CoffeeShop('Starbucks Coffee Company')
 
 ##################### КОМАНДЫ ДЛЯ ПРОСМОТРА БД: #####################
 
-# coffeeshop.show_table(tuple()) # ОШИБКА
-# coffeeshop.show_table('пополнение склада')  # ОШИБКА
+# coffeeshop.show_table()
+# coffeeshop.show_table('пополнение склада')  
 # coffeeshop.show_table(3, 5)
 # coffeeshop.show_table(datetime(2025, 5, 26, 16, 00, 00), datetime(2025, 5, 26, 16, 43, 30))
 # coffeeshop.show_table(datetime(2025, 5, 26, 16, 00, 00), datetime(2025, 5, 26, 16, 43, 30), show_all=False)
@@ -33,6 +33,6 @@ coffeeshop = CoffeeShop('Starbucks Coffee Company')
 
 ##################### КОМАНДЫ ДЛЯ УДАЛЕНИЯ ИЗ БД: #####################
 
-# coffeeshop.del_from_table(datetime(2025, 5, 26, 16, 43, 30))
-# coffeeshop.del_from_table('order_coffee')
+# coffeeshop.del_from_table(datetime(2025, 5, 26, 23, 46, 00))
+# coffeeshop.del_from_table('заказ кофе')
 # coffeeshop.del_from_table('Latte')

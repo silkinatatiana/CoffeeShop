@@ -15,6 +15,7 @@ class CoffeeShop:
         self.name = name
         self.cash_register = 0
         self.check_number = 0
+        self.invoice = 0
         self.balance_in_stock = balance_in_stock
         self.coffee = {'Cappuccino': Coffee('Cappuccino', 350), 
                        'Latte': Coffee('Latte', 380), 
@@ -25,7 +26,6 @@ class CoffeeShop:
         drinks = []
         for drink, count in kwargs.items():
             self.verification(drink)
-
             if count > self.balance_in_stock[drink]:
                 raise Exception(f"К заказу доступно {self.balance_in_stock[drink]} чашек {count}")
 
@@ -37,6 +37,7 @@ class CoffeeShop:
         self.print_a_check(coffee='\n'.join(drinks), total_price=total_price)
         db_instance.add_entry(check_number=self.check_number, operation='заказ кофе', type_coffee=', '.join(drinks), 
                               count_cups=count, total_sum=total_price)
+
 
     def verification(self, drink):
         if drink not in self.balance_in_stock:
@@ -53,21 +54,22 @@ class CoffeeShop:
     def replenish_warehouse(self, **kwargs): # пополнить склад
         drinks = []
         total_count = 0
+        self.invoice += 1
         for drink, count in kwargs.items():
             self.verification(drink)
             self.balance_in_stock[drink] += count
             drinks.append(f"{drink}: {str(count)} шт.")
             total_count += count
-        db_instance.add_entry(check_number=self.check_number, operation='пополнение склада',
-                              type_coffee=', '.join(drinks), count_cups=total_count)
+        db_instance.add_entry(check_number=self.invoice, operation='пополнение склада', type_coffee=', '.join(drinks), 
+                              count_cups=count)
         
     def show_table(self, *args, show_all=True):
         if not args or args[0] in ('заказ кофе', 'пополнение склада'):
-            db_instance.show_table(args)
-        if len(args) == 2 and all(type(el) == int for el in args):
+            db_instance.show_table(*args)
+        elif len(args) == 2 and all(type(el) == int for el in args):
             cups_from, cups_before = args
             db_instance.select_by_cups(cups_from, cups_before)
-        if len(args) == 2 and all(type(el) == datetime for el in args):
+        elif len(args) == 2 and all(type(el) == datetime for el in args):
             dt_from, dt_before = args
             if show_all:
                 db_instance.select_by_datetime(dt_from, dt_before)

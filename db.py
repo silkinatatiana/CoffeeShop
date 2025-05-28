@@ -38,12 +38,15 @@ class DataBase:
     def show_table(self, *args):
         if len(args) == 0:
             sql = "SELECT * FROM coffeeshop;"
+            params = ()
         else:
             sql = "SELECT * FROM coffeeshop WHERE operation = ?;"
+            params = (args[0],)
+            
         with self.get_connection() as conn:
-            conn.execute(sql, (args[0]), )
-            cursor = conn.cursor()
+            cursor = conn.execute(sql, params)
             return cursor.fetchall()
+
 
 
     def select_by_cups(self, cups_from, cups_before):

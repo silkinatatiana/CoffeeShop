@@ -31,7 +31,7 @@ class CoffeeShop:
 
             total_price += self.coffee[drink].price * count
             self.balance_in_stock[drink] -= count
-            drinks.append(f"{drink}: {str(count)} шт., {self.coffee[drink].price} руб/шт")
+            drinks.append(f"{drink}: {count}, {self.coffee[drink].price}")
 
         self.cash_register += total_price
         self.print_a_check(coffee='\n'.join(drinks), total_price=total_price)
@@ -63,30 +63,17 @@ class CoffeeShop:
         db_instance.add_entry(check_number=self.invoice, operation='пополнение склада', type_coffee=', '.join(drinks), 
                               count_cups=count)
         
-    def show_table(self, *args, show_all=True):
-        if not args or args[0] in ('заказ кофе', 'пополнение склада'):
-            db_instance.show_table(*args)
-        elif len(args) == 2 and all(type(el) == int for el in args):
-            cups_from, cups_before = args
-            db_instance.select_by_cups(cups_from, cups_before)
-        elif len(args) == 2 and all(type(el) == datetime for el in args):
-            dt_from, dt_before = args
-            if show_all:
-                db_instance.select_by_datetime(dt_from, dt_before)
-            else:
-                db_instance.sumchecks_and_countcups(dt_from, dt_before)
+    def show_table(self, select_col=None, to_sort = None, **kwargs):
+        for line in db_instance.show_table(select_col, to_sort, **kwargs):
+            print(*line)
 
-    def sort_table(self, by_sum=True):
-        if by_sum:
-            db_instance.sort_by_increasing_sum()
-        else:
-            db_instance.sort_by_count_time()
+    def sumchecks_and_countcups(self, dt_from, dt_before):
+        print(db_instance.sumchecks_and_countcups(dt_from, dt_before))
 
-    def del_from_table(self, *args):
-        if type(args[0]) == datetime:
-            db_instance.del_before_time(args[0])
-        elif args[0] in ('заказ кофе', 'пополнение склада'):
-            db_instance.del_by_operation_type(args[0])
-        else:
-            db_instance.del_by_coffee_type(*args)
+    def update_table(self, col_name, new_val, **kwargs):
+        db_instance.update_table(col_name, new_val, **kwargs)
+
+    def delete_from_db(self, **kwargs):
+        db_instance.delete_from_db(**kwargs)
         
+       

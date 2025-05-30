@@ -35,62 +35,38 @@ class DataBase:
                 """, (check_number, operation, type_coffee, total_sum, count_cups, timestamp))
             conn.commit()
 
-    def show_table(self, *args):
-        if len(args) == 0:
-            sql = "SELECT * FROM coffeeshop;"
-            params = ()
-        else:
-            sql = "SELECT * FROM coffeeshop WHERE operation = ?;"
-            params = (args[0],)
-            
-        with self.get_connection() as conn:
-            cursor = conn.execute(sql, params)
+    def show_table(self, select_col, to_sort, **kwargs):  
+        with self.get_connection() as conn: 
+            if select_col or kwargs:
+                cursor = self.select_by_column(select_col, conn, to_sort, **kwargs)
+            else:
+                sql = "SELECT * FROM coffeeshop"
+                if to_sort:
+                    sql += ' ORDER BY ' + ', '.join(to_sort)
+                cursor = conn.execute(sql)
             return cursor.fetchall()
-
-
-
-    def select_by_cups(self, cups_from, cups_before):
-        with self.get_connection() as conn:
-            conn.execute(
-                """
-                SELECT * FROM coffeeshop WHERE count_cups BETWEEN ? AND ?;
-                """, (cups_from, cups_before)
-            )
-            cursor = conn.cursor()
-            return cursor.fetchall()
-
-    def select_by_datetime(self, dt_from, dt_before):
-        with self.get_connection() as conn:
-            conn.execute(
-                """
-                SELECT * FROM coffeeshop
-                WHERE timestamp BETWEEN ? AND ?;
-                """, (dt_from, dt_before)
-            )
-            cursor = conn.cursor()
-            return cursor.fetchall()
+    
+    def select_by_column(self, select_col, conn, to_sort, **kwargs):
+        select = ', '.join(select_col) if select_col else '*'
+        where_clauses = []
+        params = []
         
-    # Сортировка по количеству, времени (одна сортировка)
-    def sort_by_count_time(self):
-        with self.get_connection() as conn:
-            conn.execute("""
-                         SELECT * FROM coffeeshop
-                         ORDER BY count_cups, timestamp;
-                        """)
-            
-            cursor = conn.cursor()
-            return cursor.fetchall()
+        for key, values in kwargs.items():
+            if isinstance(values, (tuple, list)):
+                placeholders = ', '.join(['?'] * len(values))
+                where_clauses.append(f"{key} IN ({placeholders})")
+                params.extend(values)
+            else:
+                where_clauses.append(f"{key} = ?")
+                params.append(values)
+        
+        where = ' AND '.join(where_clauses) if where_clauses else '1=1'
+        sql = f"SELECT {select} FROM coffeeshop WHERE {where}"
+        if to_sort:
+            sql += ' ORDER BY ' + ', '.join(to_sort)
+        cursor = conn.execute(sql, tuple(params))
+        return cursor
 
-    # Сортировка по увеличению суммы
-    def sort_by_increasing_sum(self):
-        with self.get_connection() as conn:
-            conn.execute("""
-                         SELECT * FROM coffeeshop
-                         ORDER BY total_sum;
-                         """)
-
-            cursor = conn.cursor()
-            return cursor.fetchall()
 
     # Посчитать сумму чеков и отдельно количество чашек, за определенный период
     def sumchecks_and_countcups(self, dt_from, dt_before):
@@ -105,44 +81,43 @@ class DataBase:
             cursor = conn.cursor()
             return cursor.fetchall()
         
-        # Удаление записи из БД до указанного времени datetime
-    def del_before_time(self, dt):
-        with self.get_connection() as conn:
-            conn.execute(
-                """
-                DELETE FROM coffeeshop
-                WHERE timestamp < ?;
-                """, (dt,)
-            )
-            conn.commit()
-
-    # Удалить записи где был куплен определенный вид кофе
-    def del_by_coffee_type(self, *args):
-        if not args:
-            raise ValueError("Необходимо указать хотя бы один тип кофе")
-        
-        with self.get_connection() as conn:
-            conditions = " OR ".join(["type_coffee LIKE ?" for _ in args])
-            params = [f"%{coffee_type}%" for coffee_type in args]
+    def update_table(self, col_name, new_val, **kwargs):
+        with self.get_connection() as conn: 
+            where_clauses = []
+            params = []
             
-            conn.execute(
-                f"""
-                DELETE FROM coffeeshop 
-                WHERE {conditions};
-                """, 
-                params
-            )
-            conn.commit()
+            for key, values in kwargs.items():
+                if isinstance(values, (tuple, list)):
+                    placeholders = ', '.join(['?'] * len(values))
+                    where_clauses.append(f"{key} IN ({placeholders})")
+                    params.extend(values)
+                else:
+                    where_clauses.append(f"{key} = ?")
+                    params.append(values)
 
-    # Удалить по типу операций
-    def del_by_operation_type(self, operation_type):
-        if operation_type not in ('заказ кофе', 'пополнение склада'):
-            raise ValueError("Неизвестная операция")
-        
+            where = ' AND '.join(where_clauses) if where_clauses else '1=1'
+            sql = f"UPDATE coffeeshop SET {col_name} = ? WHERE {where}"
+            cursor = conn.execute(sql, (new_val, *params))
+            return cursor
+
+    def delete_from_db(self, **kwargs):
         with self.get_connection() as conn:
-            conn.execute(
-                """
-                DELETE FROM coffeeshop WHERE operation = ?;
-                """, (operation_type,)
-            )
-            conn.commit()
+            if not kwargs:
+                cursor = conn.execute(f"DELETE FROM coffeeshop")
+            else:
+                where_clauses = []
+                params = []
+                
+                for key, values in kwargs.items():
+                    if isinstance(values, (tuple, list)):
+                        placeholders = ', '.join(['?'] * len(values))
+                        where_clauses.append(f"{key} IN ({placeholders})")
+                        params.extend(values)
+                    else:
+                        where_clauses.append(f"{key} = ?")
+                        params.append(values)
+
+                where = ' AND '.join(where_clauses) if where_clauses else '1=1'
+                sql = f"DELETE FROM coffeeshop WHERE {where}"
+                cursor = conn.execute(sql, tuple(params))
+            return cursor 

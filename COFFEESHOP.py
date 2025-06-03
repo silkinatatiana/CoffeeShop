@@ -4,11 +4,10 @@ from db import DataBase
 db_instance = DataBase('coffeeshop.db', 'sales', 'warehouse', 'stock')
 
 class Coffee:
-    def __init__(self, name, selling_price, purchase_cost, count):
+    def __init__(self, name, selling_price, purchase_cost):
         self.name = name
         self.selling_price = selling_price
         self.purchase_cost = purchase_cost
-        self.count = count
 
 class CoffeeShop:
     CHECK_NUMBER = 1
@@ -17,11 +16,11 @@ class CoffeeShop:
     def __init__(self, name):
         self.name = name
         self.cash_register = 0
-        self.coffee = {'Cappuccino': Coffee('Cappuccino', selling_price=350, purchase_cost=120, count=0), 
-                       'Latte': Coffee('Latte', selling_price=380, purchase_cost=120, count=0), 
-                       'Americano': Coffee('Americano', selling_price=250, purchase_cost=72, count=0),
-                       'Espresso': Coffee('Espresso', selling_price=230, purchase_cost=70, count=0),
-                       'Raf': Coffee('Raf', selling_price=420, purchase_cost=135, count=0)}
+        self.coffee = {'Cappuccino': Coffee('Cappuccino', selling_price=350, purchase_cost=120), 
+                       'Latte': Coffee('Latte', selling_price=380, purchase_cost=120), 
+                       'Americano': Coffee('Americano', selling_price=250, purchase_cost=72),
+                       'Espresso': Coffee('Espresso', selling_price=230, purchase_cost=70),
+                       'Raf': Coffee('Raf', selling_price=420, purchase_cost=135)}
         self.load_last_data()
 
     def load_last_data(self):
@@ -33,9 +32,6 @@ class CoffeeShop:
         if last_invoice is not None:
             CoffeeShop.INVOICE = last_invoice + 1
 
-        for name in self.coffee:
-            self.coffee[name].count = db_instance.get_current_stock(name)
-
     def order_coffee(self, **kwargs):
         total_sum = 0
         count_cups = 0
@@ -43,9 +39,10 @@ class CoffeeShop:
 
         for drink, amount in kwargs.items():
             self.verification(drink)
+            current_count = db_instance.get_current_stock(drink)
 
-            if amount > self.coffee[drink].count:
-                raise Exception(f"К заказу доступно {self.coffee[drink].count} чашек {drink}")
+            if amount > current_count:
+                raise Exception(f"К заказу доступно {current_count} чашек {drink}")
 
             total_sum += self.coffee[drink].selling_price * amount
             count_cups += amount
@@ -54,16 +51,16 @@ class CoffeeShop:
             db_instance.add_entry_sales(CoffeeShop.CHECK_NUMBER, self.coffee[drink].name, amount, self.coffee[drink].selling_price)
             
         self.cash_register += total_sum
-        self.print_a_check(coffee='\n'.join(drinks), total_price=total_sum)
+        self.print_a_check(coffee='\n'.join(drinks), total_sum=total_sum)
         CoffeeShop.CHECK_NUMBER += 1
 
     def verification(self, drink):
         if drink not in self.coffee:
             raise Exception(f"{drink} нет в меню")
         
-    def print_a_check(self, coffee, total_price):
+    def print_a_check(self, coffee, total_sum):
         print(f"Чек {CoffeeShop.CHECK_NUMBER}\n{coffee}\n"
-              f"Общая стоимость покупки: {total_price} руб.\n"
+              f"Общая стоимость покупки: {total_sum} руб.\n"
               f"{self.name}\n"
               f"{datetime.now().replace(microsecond=0)}")
 
